@@ -3,7 +3,7 @@ jobs:
   checkout:
     working_directory: /home/circleci/camsaul/sqlhoney
     docker:
-      - image: circleci/clojure:lein-2.9.5
+      - image: circleci/openjdk-17-tools-deps-1.10.3.822-buster
     steps:
       # Checkout source
       - restore_cache:
@@ -36,7 +36,7 @@ jobs:
   test:
     working_directory: /home/circleci/camsaul/sqlhoney
     docker:
-      - image: circleci/clojure:lein-2.9.5
+      - image: circleci/openjdk-17-tools-deps-1.10.3.822-buster
     steps:
       - attach_workspace:
           at: /home/circleci
