@@ -1,136 +1,48 @@
+# Clojure CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-clojure/ for more details
+#
 version: 2.1
+
 jobs:
-  checkout:
-    working_directory: /home/circleci/camsaul/sqlhoney
+  build:
     docker:
+      # specify the version you desire here
       - image: circleci/clojure:lein-2.9.5
+
+      # Specify service dependencies here if necessary
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      # - image: circleci/postgres:9.4
+
+    working_directory: ~/repo
+
+    environment:
+      LEIN_ROOT: "true"
+      # Customize the JVM maximum heap limit
+      JVM_OPTS: -Xmx3200m
+
     steps:
-      # Checkout source
-      - restore_cache:
-          keys:
-            - source-{{ .Branch }}-{{ .Revision }}
-            - source-{{ .Branch }}
-            - source-
       - checkout
-      - save_cache:
-          key: source-{{ .Branch }}-{{ .Revision }}
-          paths:
-            - .git
-      # Fetch deps
+
+      # Download and cache dependencies
       - restore_cache:
           keys:
-            - deps-{{ checksum "deps.edn" }}
-            - deps-
-      - run: clojure -P
+            - v1-dependencies-{{ checksum "project.clj" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
+
+      - run: lein deps
+
       - save_cache:
-          key: deps-{{ checksum "deps.edn" }}
           paths:
-            - /home/circleci/.m2
-      # persist so other steps can use it
-      - persist_to_workspace:
-          root: /home/circleci/
-          paths:
-            - .m2
-            - camsaul/sqlhoney
+            - ~/.m2
+          key: v1-dependencies-{{ checksum "project.clj" }}
 
-  test:
-    working_directory: /home/circleci/camsaul/sqlhoney
-    docker:
-      - image: circleci/clojure:lein-2.9.5
-    steps:
-      - attach_workspace:
-          at: /home/circleci
-      - run:
-          name: Run tests
-          command: clojure -M:test
-          no_output_timeout: 5m
-
-  # lint-bikeshed:
-  #   working_directory: /home/circleci/camsaul/sqlhoney
-  #   docker:
-  #     - image: circleci/clojure:lein-2.8.1
-  #   steps:
-  #     - attach_workspace:
-  #         at: /home/circleci
-  #     - run:
-  #         name: Run Bikeshed linter
-  #         command: lein bikeshed
-  #         no_output_timeout: 5m
-
-  # lint-eastwood:
-  #   working_directory: /home/circleci/camsaul/sqlhoney
-  #   docker:
-  #     - image: circleci/clojure:lein-2.8.1
-  #   steps:
-  #     - attach_workspace:
-  #         at: /home/circleci
-  #     - run:
-  #         name: Run Eastwood linter
-  #         command: lein eastwood
-  #         no_output_timeout: 5m
-
-  # lint-docstrings:
-  #   working_directory: /home/circleci/camsaul/sqlhoney
-  #   docker:
-  #     - image: circleci/clojure:lein-2.8.1
-  #   steps:
-  #     - attach_workspace:
-  #         at: /home/circleci
-  #     - run:
-  #         name: Run Docstring Checker linter
-  #         command: lein docstring-checker
-  #         no_output_timeout: 5m
-
-  # lint-namespace-decls:
-  #   working_directory: /home/circleci/camsaul/sqlhoney
-  #   docker:
-  #     - image: circleci/clojure:lein-2.8.1
-  #   steps:
-  #     - attach_workspace:
-  #         at: /home/circleci
-  #     - run:
-  #         name: Run ns declaration checker
-  #         command: lein check-namespace-decls
-  #         no_output_timeout: 5m
-
-  # deploy:
-  #   working_directory: /home/circleci/camsaul/sqlhoney
-  #   docker:
-  #     - image: circleci/clojure:lein-2.8.1
-  #   steps:
-  #     - attach_workspace:
-  #         at: /home/circleci
-  #     - run:
-  #         name: Deploy to clojars
-  #         command: lein deploy clojars
+      # run tests!
+      - run: lein test
 
 workflows:
-  version: 2
   build:
     jobs:
-      - checkout
-      - test:
-          requires:
-            - checkout
-      # - lint-bikeshed:
-      #     requires:
-      #       - checkout
-      # - lint-eastwood:
-      #     requires:
-      #       - checkout
-      # - lint-docstrings:
-      #     requires:
-      #       - checkout
-      # - lint-namespace-decls:
-      #     requires:
-      #       - checkout
-      # - deploy:
-      #     requires:
-      #       - test
-      #       - lint-bikeshed
-      #       - lint-eastwood
-      #       - lint-docstrings
-      #       - lint-namespace-decls
-      #     filters:
-      #       branches:
-      #         only: master
+      - build
