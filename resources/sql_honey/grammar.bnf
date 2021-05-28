@@ -1,0 +1,199 @@
+query = select-query
+
+(*
+CONVENTIONS USED BELOW:
+
+- UPPER-CASE denotes a character literal or keyword.
+- KEYWORD_ denotes a character literal or keyword with (possibily optional, if allowed) whitespace on either side.
+
+*)
+
+(* CHARACTERS *)
+
+whitespace = #'\s+'
+COMMA = ','
+COMMA_ = <whitespace?> <COMMA> <whitespace?>
+SINGLE-QUOTE = "'"
+DOUBLE-QUOTE = '"'
+STAR = <'*'>
+DOT = <'.'>
+OPEN-PAREN_ = <whitespace?> <'('> <whitespace?>
+CLOSE-PAREN_ = <whitespace?> <')'> <whitespace?>
+JDBC-PLACEHOLDER = #'(?<!\?)\?(?!\?)' (* a single question mark not preceded or followed by a question mark *)
+SLASH = <'/'>
+PLUS = <'+'>
+DASH = <'-'>
+
+(* RESERVED KEYWORDS *)
+(* reserved-keywords cannot be used in unquoted identifiers. *)
+
+AND = #'(?i)and'
+AS = #'(?i)as'
+ASC = #'(?i)asc'
+BETWEEN = #'(?i)between'
+CASE = #'(?i)case'
+CAST = #'(?i)cast'
+DESC = #'(?i)desc'
+ELSE = #'(?i)else'
+END  = #'(?i)end'
+FROM = #'(?i)from'
+FULL = #'(?i)full'
+INNER = #'(?i)inner'
+JOIN = #'(?i)join'
+LEFT = #'(?i)left'
+LIKE = <#'(?i)like'>
+LIMIT = #'(?i)limit'
+NULL = #'(?i)null'
+ON = #'(?i)on'
+OR = #'(?i)or'
+OUTER = #'(?i)outer'
+RIGHT = #'(?i)right'
+SELECT = #'(?i)select'
+THEN = #'(?i)then'
+WHEN = #'(?i)when'
+WHERE = #'(?i)where'
+
+reserved-keyword = AND | AS | ASC | BETWEEN | CASE | CAST | DESC | ELSE | END | FROM | FULL | INNER |
+                   JOIN | LEFT | LIKE | LIMIT | NULL | ON | OR | OUTER | RIGHT | SELECT | THEN | WHEN | WHERE
+
+(* UNRESERVED KEYWORDS *)
+(* other multi-word keywords whose individual words should be ok inside an identifier. *)
+
+GROUP-BY = #'(?i)group' <whitespace> #'(?i)by'
+ORDER-BY = #'(?i)order' <whitespace> #'(?i)by'
+
+(* IDENTIFIERS *)
+
+<unquoted-unqualified-indentifier> = !(reserved-keyword !#'[\w\d_]') #'[A-Za-z_][\w\d_]*'
+<quoted-unqualified-identifier> = <DOUBLE-QUOTE> #'[^"]+' <DOUBLE-QUOTE>
+<unqualified-identifier> = unquoted-unqualified-indentifier | quoted-unqualified-identifier
+
+identifier = (unqualified-identifier <DOT>)* unqualified-identifier
+
+(* LITERALS *)
+
+integer = #"-?\d+"
+float = #"-?\d+\.\d+"
+<number> = integer | float
+
+string-literal = <SINGLE-QUOTE> #"(?:[^']|(?:''))*" <SINGLE-QUOTE>
+
+jdbc-placeholder = <JDBC-PLACEHOLDER>
+
+null = <NULL>
+
+<literal> = number | string-literal | jdbc-placeholder | null
+
+(* EXPRESSIONS *)
+
+star = (identifier <DOT>)? <STAR> (* TODO - Does star make sense as an expression? *)
+
+subtract = expression <whitespace?> <DASH> <whitespace?> expression
+add = expression <whitespace?> <PLUS> <whitespace?> expression
+divide = expression <whitespace?> <SLASH> <whitespace?> expression
+multiply = expression <whitespace?> <STAR> <whitespace?> expression
+
+<arithmetic> = multiply / divide / add / subtract
+
+<function-arglist> = <OPEN-PAREN_> (expression (<COMMA_> expression)*)? <CLOSE-PAREN_>
+function-call = identifier <whitespace?> function-arglist
+
+AS_ = <whitespace> <AS> <whitespace>
+as = expression <AS_> identifier
+cast = <CAST> <OPEN-PAREN_> as <CLOSE-PAREN_>
+
+<CASE_> = <whitespace> <CASE> <whitespace>
+
+<case-subclause> = <WHEN> <whitespace> condition <whitespace> <THEN> <whitespace> expression
+<case-else> = <ELSE> <whitespace> expression
+
+case = <CASE> (<whitespace> case-subclause)+ (<whitespace> case-else)? <whitespace> <END>
+
+<unwrapped-expression> = arithmetic / identifier / literal / star / function-call / cast / case
+<wrapped-expression> = <OPEN-PAREN_> expression <CLOSE-PAREN_>
+<expression> = wrapped-expression / unwrapped-expression
+
+(* CONDITIONS *)
+
+AND_ = <whitespace> <AND> <whitespace>
+
+and = condition <AND_> condition
+or = condition <whitespace> <OR> <whitespace> condition
+
+EQUALS_                = <whitespace?> <'='>  <whitespace?>
+LESS-THAN_             = <whitespace?> <'<'>  <whitespace?>
+GREATER-THAN_          = <whitespace?> <'>'>  <whitespace?>
+LESS-THAN-OR-EQUAL_    = <whitespace?> <'<='> <whitespace?>
+GREATER-THAN-OR-EQUAL_ = <whitespace?> <'>='> <whitespace?>
+LIKE_                  = <whitespace> <LIKE> <whitespace>
+BETWEEN_               = <whitespace> <BETWEEN> <whitespace>
+
+equals                = expression <EQUALS_>                expression
+less-than             = expression <LESS-THAN_>             expression
+greater-than          = expression <GREATER-THAN_>          expression
+less-than-or-equal    = expression <LESS-THAN-OR-EQUAL_>    expression
+greater-than-or-equal = expression <GREATER-THAN-OR-EQUAL_> expression
+like                  = expression <LIKE_>                 expression
+between               = expression <BETWEEN_> expression <AND_> expression
+
+<unwrapped-condition> = equals | and | or | equals | less-than | greater-than | less-than-or-equal | greater-than-or-equal | like | between
+<wrapped-condition> = <OPEN-PAREN_> unwrapped-condition <CLOSE-PAREN_>
+<condition> = wrapped-condition / unwrapped-condition
+
+(* SELECT *)
+
+<select-identifier> = as / expression
+
+select = <SELECT> <whitespace> select-identifier (<COMMA_> select-identifier)*
+
+subselect-query = <OPEN-PAREN_> select-query <CLOSE-PAREN_>
+subselect = subselect-query identifier
+
+(* FROM *)
+
+<unaliased-from> = identifier | subselect-query
+aliased-from = unaliased-from <whitespace> identifier
+<from-subclause> = unaliased-from | aliased-from
+
+from = <FROM> <whitespace> from-subclause (<COMMA_> from-subclause)*
+
+(* JOINS *)
+
+left-join = <LEFT> <whitespace> <JOIN>
+right-join = <RIGHT> <whitespace> <JOIN>
+inner-join = <INNER> <whitespace> <JOIN>
+full-join = (<FULL> <whitespace>)? (<OUTER> <whitespace>)? <JOIN>
+
+join = (left-join | right-join | inner-join | full-join) <whitespace> from-subclause <whitespace> <ON> <whitespace> condition
+joins = join (<whitespace> join)*
+
+(* GROUP BY *)
+
+group-by = <GROUP-BY> <whitespace> expression (<COMMA_> expression)*
+
+(* ORDER BY *)
+
+asc = <ASC>
+desc = <DESC>
+order-by-subclause = expression (<whitespace> (asc | desc))?
+order-by = <ORDER-BY> <whitespace> order-by-subclause (<COMMA_> order-by-subclause)*
+
+(* WHERE *)
+
+where = <WHERE> <whitespace> condition
+
+(* LIMIT *)
+
+(* TODO - Can limit be an integer expression? *)
+limit = <LIMIT> <whitespace> integer
+
+(* SELECT QUERY *)
+
+<select-query> = <whitespace?> select
+                (<whitespace> from)?
+                (<whitespace> joins)?
+                (<whitespace> where)?
+                (<whitespace> group-by)?
+                (<whitespace> order-by)?
+                (<whitespace> limit)? (* TODO - optional semicolon *)
+                <whitespace?>
