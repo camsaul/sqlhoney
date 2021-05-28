@@ -1,6 +1,6 @@
 <!-- [![Downloads](https://versions.deps.co/sqlhoney/sqlhoney/downloads.svg)](https://versions.deps.co/sqlhoney/sqlhoney) -->
 [![Dependencies Status](https://versions.deps.co/sqlhoney/sqlhoney/status.svg)](https://versions.deps.co/sqlhoney/sqlhoney)
-[![Circle CI](https://circleci.com/gh/sqlhoney/sqlhoney.svg?style=svg)](https://circleci.com/gh/sqlhoney/sqlhoney)
+[![Circle CI](https://circleci.com/gh/camsaul/sqlhoney.svg?style=svg)](https://circleci.com/gh/camsaul/sqlhoney)
 [![License](https://img.shields.io/badge/license-Eclipse%20Public%20License-blue.svg)](https://raw.githubusercontent.com/sqlhoney/sqlhoney/master/LICENSE.txt)
 <!-- [![cljdoc badge](https://cljdoc.org/badge/sqlhoney/sqlhoney)](https://cljdoc.org/d/sqlhoney/sqlhoney/CURRENT) -->
 
