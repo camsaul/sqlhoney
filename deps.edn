@@ -7,8 +7,27 @@
  ["src" "resources"]
 
  :aliases
+ ;; clojure -M:test
  {:test {:extra-paths ["test"]
          :extra-deps  {com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"
                                                   :sha     "209b64504cb3bd3b99ecfec7937b358a879f55c1"}
                        org.clojure/data.json     {:mvn/version "2.0.2"}}
-         :main-opts   ["-m" "cognitect.test-runner"]}}}
+         :main-opts   ["-m" "cognitect.test-runner"]}
+
+  ;; generate pom.xml file with clojure -Spom
+
+  ;; clojure -X:jar
+  :jar {:replace-deps {com.github.seancorfield/depstar {:mvn/version "2.0.216"}}
+        :exec-fn      hf.depstar/jar
+        :exec-args    {:group-id    "com.camsaul"
+                       :artifact-id "sqlhoney"
+                       :version     "0.1.0-alpha-SNAPSHOT"
+                       :jar         "target/sqlhoney.jar"
+                       :sync-pom    true}}
+
+  ;; clojure -X:deploy
+  :deploy {:extra-deps {slipset/deps-deploy {:mvn/version "RELEASE"}}
+           :exec-fn    deps-deploy.deps-deploy/deploy
+           :exec-args  {:installer      :remote
+                        ;; :sign-releases? true
+                        :artifact       "target/sqlhoney.jar"}}}}

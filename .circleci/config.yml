@@ -21,7 +21,9 @@ jobs:
           keys:
             - deps-{{ checksum "deps.edn" }}
             - deps-
-      - run: clojure -P
+      - run: clojure -P -M:test
+      - run: clojure -P -X:jar
+      - run: clojure -P -X:deploy
       - save_cache:
           key: deps-{{ checksum "deps.edn" }}
           paths:
@@ -93,16 +95,22 @@ jobs:
   #         command: lein check-namespace-decls
   #         no_output_timeout: 5m
 
-  # deploy:
-  #   working_directory: /home/circleci/camsaul/sqlhoney
-  #   docker:
-  #     - image: circleci/clojure:lein-2.8.1
-  #   steps:
-  #     - attach_workspace:
-  #         at: /home/circleci
-  #     - run:
-  #         name: Deploy to clojars
-  #         command: lein deploy clojars
+  deploy:
+    working_directory: /home/circleci/camsaul/sqlhoney
+    docker:
+      - image: circleci/clojure:openjdk-17-tools-deps-1.10.3.822-buster
+    steps:
+      - attach_workspace:
+          at: /home/circleci
+      - run:
+          name: Generate pom.xml
+          command: clojure -Spom
+      - run:
+          name: Build JAR
+          command: clojure -X:jar
+      - run:
+          name: Deploy to clojars
+          command: clojure -X:deploy
 
 workflows:
   version: 2
@@ -124,13 +132,13 @@ workflows:
       # - lint-namespace-decls:
       #     requires:
       #       - checkout
-      # - deploy:
-      #     requires:
-      #       - test
-      #       - lint-bikeshed
-      #       - lint-eastwood
-      #       - lint-docstrings
-      #       - lint-namespace-decls
-      #     filters:
-      #       branches:
-      #         only: master
+      - deploy:
+          requires:
+            - test
+            # - lint-bikeshed
+            # - lint-eastwood
+            # - lint-docstrings
+            # - lint-namespace-decls
+          filters:
+            branches:
+              only: master
